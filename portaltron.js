@@ -14,14 +14,15 @@ var ctx = canvas.getContext('2d');
 var drawPortalSegment = function(portalsegment) {
   ctx.strokeStyle = portalsegment.color;
   ctx.lineCap = 'round';
-  ctx.lineWidth = 0.05;
+  // TODO adjust somewhat based on pixel density maybe?
+  ctx.lineWidth = 0.005;
   ctx.beginPath();
   ctx.moveTo(portalsegment.sx, portalsegment.sy);
   ctx.lineTo(portalsegment.ex, portalsegment.ey);
   ctx.stroke();
 };
 
-var seg = {
+var seg1 = {
   color: '#f80',
   sx: 0.25,
   sy: 0.25,
@@ -30,14 +31,30 @@ var seg = {
   ey: 0.5,
   et: 1
 };
-//var segs = [];
-//for(var i = 0; i < 50; i++) {
-//  var newSeg = {color: '#f80'};
-//}
+
+var randomwalk1 = function(firstSeg) {
+  var segs = [firstSeg];
+  lastSeg = firstSeg;
+  for(var i = 0; i < 50; i++) {
+    var newSeg = {color: '#f80'};
+    newSeg.sx = lastSeg.ex;
+    newSeg.sy = lastSeg.ey;
+    newSeg.st = lastSeg.et;
+    newSeg.ex = newSeg.sx + ((Math.random()*2-1) * 0.05);
+    newSeg.ey = newSeg.sy + ((Math.random()*2-1) * 0.05);
+    newSeg.et = newSeg.st + (Math.random()+0.1);
+    lastSeg = newSeg;
+    segs.push(newSeg);
+  }
+  return segs;
+};
+var segs = randomwalk1(seg1);
 
 ctx.save();
 ctx.scale(canvas.width, canvas.height);
 
-drawPortalSegment(seg);
+segs.forEach(function(seg) {
+  drawPortalSegment(seg);
+});
 
 ctx.restore();
