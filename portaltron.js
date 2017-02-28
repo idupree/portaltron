@@ -48,7 +48,26 @@ var randomwalk1 = function(firstSeg) {
   }
   return segs;
 };
-var segs = randomwalk1(seg1);
+var randomwalk2 = function(firstSeg) {
+  var segs = [firstSeg];
+  lastSeg = firstSeg;
+  var vx = 0, vy = 0;
+  for(var i = 0; i < 50; i++) {
+    var newSeg = {color: '#f80'};
+    vx += ((Math.random()*2-1) * 0.05);
+    vy += ((Math.random()*2-1) * 0.05);
+    newSeg.sx = lastSeg.ex;
+    newSeg.sy = lastSeg.ey;
+    newSeg.st = lastSeg.et;
+    newSeg.ex = newSeg.sx + vx;
+    newSeg.ey = newSeg.sy + vy;
+    newSeg.et = newSeg.st + (Math.random()+0.1);
+    lastSeg = newSeg;
+    segs.push(newSeg);
+  }
+  return segs;
+};
+var segs = randomwalk2(seg1);
 
 ctx.save();
 ctx.scale(canvas.width, canvas.height);
