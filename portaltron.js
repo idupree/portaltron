@@ -61,7 +61,9 @@ portalcycle2.counterpart = portalcycle1;
 
 var world = {
   portalsegments: [],
-  portalcycles: [portalcycle1, portalcycle2]
+  segsQuadTree: QuadTree(0, 0, 1, 1),
+  portalcycles: [portalcycle1, portalcycle2],
+  idCounter: 1
 };
 
 var any = function() {
@@ -71,10 +73,44 @@ var any = function() {
     }
   }
 };
+var approxSegBoundsForQuadtree = function(seg) {
+  // TODO maybe fudge amounts proportional to object width?
+  // Or if not, qtree also has a fudge amount we can/do
+  // specify, so.
+  var lowx = Math.min(seg.sx, seg.ex) - 0.001;
+  var highx = Math.max(seg.sx, seg.ex) + 0.001;
+  var lowy = Math.min(seg.sy, seg.ey) - 0.001;
+  var highy = Math.max(seg.sy, seg.ey) + 0.001;
+  return {x: lowx, y: lowy, w: highx - lowx, h: highy - lowy, seg: seg};
+};
+var approxTravelBoundsForQuadtree = function(portalcycle, maxTimeElapse) {
+  if(maxTimeElapse == null) {
+    maxTimeElapse = 10000;
+  }
+  var dx = portalcycle.vx*maxTimeElapse;
+  var dy = portalcycle.vy*maxTimeElapse;
+  var ex = portalcycle.x + dx;
+  var ey = portalcycle.y + dx;
+  var lowx = Math.min(portalcycle.x, ex) - 0.001;
+  var highx = Math.max(portalcycle.x, ex) + 0.001;
+  var lowy = Math.min(portalcycle.y, ey) - 0.001;
+  var highy = Math.max(portalcycle.y, ey) + 0.001;
+  return {x: lowx, y: lowy, w: highx - lowx, h: highy - lowy};
+  // Math.sqrt makes it slower than expected?
+  //return {
+  //  x: portalcycle.x, y: portalcycle.y, dx: dx, dy: dy,
+  //  dist: Math.sqrt(dx*dx + dy*dy)
+  //};
+};
 
 var addPortalsegment = function(seg) {
+  seg.id = world.idCounter++;
   world.portalsegments.push(seg);
   seg.creator.portals.push(seg);
+  var bounds = approxSegBoundsForQuadtree(seg);
+  bounds.id = seg.id;
+  seg.qtreebounds = bounds;
+  world.segsQuadTree.put(bounds);
 };
 
 var randomwalk1 = function(firstSeg) {
@@ -324,6 +360,7 @@ var segsFromPortalcycle = function(portalcycle) {
     portalcycle.portals,
     portalcycle.counterpart.portals);
 };
+
 // Returns -1 / 0 / 1 (less, equal, greater), comparing
 // sequences lexicographically (members by <).
 var lexicographicCompare = function(arr1, arr2) {
@@ -345,16 +382,35 @@ var lexicographicCompare = function(arr1, arr2) {
 };
 // Next portal the portalcycle will enter, if any.
 // (Returns the return value of driveIntoPortal, or null.)
-var findNextPortal = function(portalcycle) {
+var findNextPortal = function(portalcycle, maxTimeElapse) {
   var best = null;
   var orderBy = (into) => [into.elapsed, into.timeWhenEnteredPointOfPortalWasCreated, into.portalsegment1.color];
-  segsFromPortalcycle(portalcycle).forEach(function(seg) {
+  world.segsQuadTree.get(approxTravelBoundsForQuadtree(portalcycle, maxTimeElapse),
+                         // For double-checking for bugs with quadtree search:
+                         //{x:0, y:0, w:1, h:1},
+                         0.001, function(qtseg) {
+    var seg = qtseg.seg;
     var into = driveIntoPortal(portalcycle, seg);
     if(into && (best === null ||
                 lexicographicCompare(orderBy(into), orderBy(best)) === -1)) {
       best = into;
     }
+    return true; // continue quadtree iteration
   });
+  /*
+  // For double-checking with bugs with quadtree search:
+  var best2 = null;
+  segsFromPortalcycle(portalcycle).forEach(function(seg) {
+    var into = driveIntoPortal(portalcycle, seg);
+    if(into && (best2 === null ||
+                lexicographicCompare(orderBy(into), orderBy(best2)) === -1)) {
+      best2 = into;
+    }
+  });
+  if(((best == null) !== (best2 == null)) ||
+     (best && best2 && best.portalsegment1 !== best2.portalsegment1)) {
+    bug("why", best&& best.elapsed, best2&&best2.elapsed);
+  }*/
   return best;
 };
 // This function is usually reversible to get back from
