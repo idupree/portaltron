@@ -55,13 +55,6 @@ var initializeWorld = function() {
   };
 };
 
-var any = function() {
-  for(var i = 0; i < arguments.length; i++) {
-    if(arguments[i] !== undefined) {
-      return arguments[i];
-    }
-  }
-};
 var approxSegBoundsForQuadtree = function(seg) {
   // TODO maybe fudge amounts proportional to object width?
   // Or if not, qtree also has a fudge amount we can/do
@@ -104,7 +97,7 @@ var addPortalsegment = function(seg) {
 
 var randomwalk1 = function(firstSeg) {
   var segs = [firstSeg];
-  lastSeg = firstSeg;
+  var lastSeg = firstSeg;
   for(var i = 0; i < 50; i++) {
     var newSeg = {color: '#f80', creator: world.portalcycles[0]};
     newSeg.sx = lastSeg.ex;
@@ -120,7 +113,7 @@ var randomwalk1 = function(firstSeg) {
 };
 var randomwalk2 = function(firstSeg) {
   var segs = [firstSeg];
-  lastSeg = firstSeg;
+  var lastSeg = firstSeg;
   var vx = 0, vy = 0;
   for(var i = 0; i < 50; i++) {
     var newSeg = {color: '#f80', creator: world.portalcycles[0]};
@@ -343,12 +336,6 @@ var driveIntoPortal = function(portalcycle, portalsegment1) {
     portalsegment1
   };
 };
-// should be all segs; TODO if >2 player
-var segsFromPortalcycle = function(portalcycle) {
-  return [].concat(
-    portalcycle.portals,
-    portalcycle.counterpart.portals);
-};
 
 // Returns -1 / 0 / 1 (less, equal, greater), comparing
 // sequences lexicographically (members by <).
@@ -374,10 +361,11 @@ var lexicographicCompare = function(arr1, arr2) {
 var findNextPortal = function(portalcycle, maxTimeElapse) {
   var best = null;
   var orderBy = (into) => [into.elapsed, into.timeWhenEnteredPointOfPortalWasCreated, into.portalsegment1.color];
-  world.segsQuadTree.get(approxTravelBoundsForQuadtree(portalcycle, maxTimeElapse),
-                         // For double-checking for bugs with quadtree search:
-                         //{x:0, y:0, w:1, h:1},
-                         0.001, function(qtseg) {
+  // For double-checking for bugs with quadtree search,
+  // use the entire area as bounds: {x:0, y:0, w:1, h:1}
+  world.segsQuadTree.get(
+  approxTravelBoundsForQuadtree(portalcycle, maxTimeElapse), 0.001,
+  function(qtseg) {
     var seg = qtseg.seg;
     var into = driveIntoPortal(portalcycle, seg);
     if(into && (best === null ||
@@ -389,7 +377,7 @@ var findNextPortal = function(portalcycle, maxTimeElapse) {
   /*
   // For double-checking with bugs with quadtree search:
   var best2 = null;
-  segsFromPortalcycle(portalcycle).forEach(function(seg) {
+  world.portalsegments.forEach(function(seg) {
     var into = driveIntoPortal(portalcycle, seg);
     if(into && (best2 === null ||
                 lexicographicCompare(orderBy(into), orderBy(best2)) === -1)) {
@@ -433,27 +421,27 @@ var binarysearch = function(arr, elemIsHighEnough) {
 // but rounding error may find a different portalsegment1
 // on occasion if you tried that.
 var findCorrespondingPortal = function(timeWhenEnteredPointOfPortalWasCreated, portalsegment1) {
-   var segs = portalsegment1.creator.counterpart.portals;
-   var i = binarysearch(segs, seg=>timeWhenEnteredPointOfPortalWasCreated < seg.et);
-   if(i != null) {
-     return segs[i];
-   }
-   if(segs.length) {
-     var seg = segs[segs.length-1];
-     if(timeWhenEnteredPointOfPortalWasCreated < seg.et + 1.1) {
-       console.log("margin of error", timeWhenEnteredPointOfPortalWasCreated, seg.et);
-       return seg;
-     } else {
-       // ohhhh oops if you create your own portals on your own turn and go into them,
-       // before your partner has moved this turn, umm...
-       bug("there were no portals you emerge from?", timeWhenEnteredPointOfPortalWasCreated, seg.et);
-       // return it anyway because it appears to happen on occasion?
-       return seg;
-     }
-   } else {
-     bug("there were no portals?");
-   }
-   return null;
+  var segs = portalsegment1.creator.counterpart.portals;
+  var i = binarysearch(segs, seg=>timeWhenEnteredPointOfPortalWasCreated < seg.et);
+  if(i != null) {
+    return segs[i];
+  }
+  if(segs.length) {
+    var seg = segs[segs.length-1];
+    if(timeWhenEnteredPointOfPortalWasCreated < seg.et + 1.1) {
+      console.log("margin of error", timeWhenEnteredPointOfPortalWasCreated, seg.et);
+      return seg;
+    } else {
+      // ohhhh oops if you create your own portals on your own turn and go into them,
+      // before your partner has moved this turn, umm...
+      bug("there were no portals you emerge from?", timeWhenEnteredPointOfPortalWasCreated, seg.et);
+      // return it anyway because it appears to happen on occasion?
+      return seg;
+    }
+  } else {
+    bug("there were no portals?");
+  }
+  return null;
 };
 
 // Places portalcycle just outside portalsegment2 without moving it further,
@@ -504,7 +492,7 @@ var fnName = function(f, name) {
 };
 // profile
 var prof = function(f, name) {
-  var name = fnName(f, name);
+  name = fnName(f, name);
   var t0 = Date.now();
   console.log("t0 "+name+':', t0);
   var result = f();
@@ -512,7 +500,7 @@ var prof = function(f, name) {
   var dt = t1 - t0;
   console.log("t1 "+name+':', t1, "dt: ", dt);
   return result;
-}
+};
 var profable = function(optname, f) {
   if(arguments.length === 1) {
     f = optname;
@@ -520,12 +508,12 @@ var profable = function(optname, f) {
   }
   return function() {
     var that = this;
-    return prof(function(){return f.apply(that, arguments)}, optname);
+    return prof(function(){return f.apply(that, arguments);}, optname);
   };
 };
 
 var testSim = profable('testSim', function() {
-  initializeWorld()
+  initializeWorld();
   for(var i = 0; i < 1250; i++) {
     doTurn();
   }
