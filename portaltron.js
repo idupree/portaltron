@@ -59,16 +59,22 @@ var portalcycle2 = {
 portalcycle1.counterpart = portalcycle2;
 portalcycle2.counterpart = portalcycle1;
 
+var world = {
+  portalsegments: [],
+  portalcycles: [portalcycle1, portalcycle2]
+};
 
-var seg1 = {
-  color: '#f80',
-  creator: portalcycle1,
-  sx: 0.25,
-  sy: 0.25,
-  st: 0,
-  ex: 0.75,
-  ey: 0.5,
-  et: 1
+var any = function() {
+  for(var i = 0; i < arguments.length; i++) {
+    if(arguments[i] !== undefined) {
+      return arguments[i];
+    }
+  }
+};
+
+var addPortalsegment = function(seg) {
+  world.portalsegments.push(seg);
+  seg.creator.portals.push(seg);
 };
 
 var randomwalk1 = function(firstSeg) {
@@ -83,7 +89,7 @@ var randomwalk1 = function(firstSeg) {
     newSeg.ey = newSeg.sy + ((Math.random()*2-1) * 0.05);
     newSeg.et = newSeg.st + (Math.random()+0.1);
     lastSeg = newSeg;
-    segs.push(newSeg);
+    addPortalsegment(newSeg);
   }
   return segs;
 };
@@ -102,11 +108,21 @@ var randomwalk2 = function(firstSeg) {
     newSeg.ey = newSeg.sy + vy;
     newSeg.et = newSeg.st + (Math.random()+0.1);
     lastSeg = newSeg;
-    segs.push(newSeg);
+    addPortalsegment(newSeg);
   }
   return segs;
 };
-//var segs = randomwalk2(seg1);
+var exampleSeg1 = {
+  color: '#f80',
+  creator: portalcycle1,
+  sx: 0.25,
+  sy: 0.25,
+  st: 0,
+  ex: 0.75,
+  ey: 0.5,
+  et: 1
+};
+//var worldportalsegments = randomwalk2(exampleSeg1);
 
 // counterclockwiseness in radians
 var steer = function(portalcycle, counterclockwiseness) {
@@ -133,7 +149,7 @@ var drive = function(portalcycle, time) {
       // add the portalsegment to the world now in case there's a funny loop
       // that makes the portalcycle go through this portalsegment in this
       // very drive() invocation
-      portalcycle.portals.push(into.newportalsegment);
+      addPortalsegment(into.newportalsegment);
       time -= into.elapsed;
       /*
       console.log(
@@ -187,14 +203,12 @@ var drive = function(portalcycle, time) {
     portalsegment.et = portalcycle.t;
     // for now, just don't try during wrapping
     if(wraps === 0) {
-      portalcycle.portals.push(portalsegment);
+      addPortalsegment(portalsegment);
       newportalsegments.push(portalsegment);
     }
   }
   return newportalsegments;
 };
-var segs = [];
-var portalcycles = [portalcycle1, portalcycle2];
 
 
 // segment: sx, sy, ex, ey
@@ -403,11 +417,10 @@ var driveOutOfPortal = function(into, portalcycle, portalsegment1, portalsegment
 // Thought: slow down & speed up the passage of time for dramatic effect?
 var doTurn = function() {
   var time = 1;
-  portalcycles.forEach((portalcycle) => {
+  world.portalcycles.forEach((portalcycle) => {
     // possible TODO: if portalcycle were an es6 class, we could say portalcycle.steer()
     steer(portalcycle, (Math.random()*2-1) * 0.4);
     var newsegs = drive(portalcycle, time);
-    newsegs.forEach((seg)=>segs.push(seg));
   });
 };
 
@@ -423,7 +436,7 @@ console.log("t1: ", t1, "dt: ", dt);
 ctx.save();
 ctx.scale(canvas.width, canvas.height);
 
-segs.forEach(function(seg) {
+world.portalsegments.forEach(function(seg) {
   drawPortalSegment(seg);
 });
 
