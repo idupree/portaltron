@@ -447,6 +447,8 @@ var findCorrespondingPortal = function(timeWhenEnteredPointOfPortalWasCreated, p
        // ohhhh oops if you create your own portals on your own turn and go into them,
        // before your partner has moved this turn, umm...
        bug("there were no portals you emerge from?", timeWhenEnteredPointOfPortalWasCreated, seg.et);
+       // return it anyway because it appears to happen on occasion?
+       return seg;
      }
    } else {
      bug("there were no portals?");
