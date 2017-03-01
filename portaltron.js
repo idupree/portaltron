@@ -411,9 +411,14 @@ var doTurn = function() {
   });
 };
 
+var t0 = Date.now();
+console.log("t0: ", t0);
 for(var i = 0; i < 250; i++) {
   doTurn();
 }
+var t1 = Date.now();
+var dt = t1 - t0;
+console.log("t1: ", t1, "dt: ", dt);
 
 ctx.save();
 ctx.scale(canvas.width, canvas.height);
