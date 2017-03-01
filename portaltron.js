@@ -413,34 +413,51 @@ var findNextPortal = function(portalcycle, maxTimeElapse) {
   }*/
   return best;
 };
+
+var binarysearch = function(arr, elemIsHighEnough) {
+  var lo = 0;
+  var hi = arr.length - 1;
+  var mid;
+  while(hi - lo > 4) {
+    mid = (lo+hi) >> 1;
+    if(elemIsHighEnough(arr[mid])) {
+      hi = mid;
+    } else {
+      lo = mid;
+    }
+  }
+  while(lo <= hi) {
+    if(elemIsHighEnough(arr[lo])) {
+      return lo;
+    }
+    lo++;
+  }
+  return null;
+};
+
 // This function is usually reversible to get back from
 // portalsegment2 to portalsegment1 at the provided time,
 // but rounding error may find a different portalsegment1
 // on occasion if you tried that.
 var findCorrespondingPortal = function(timeWhenEnteredPointOfPortalWasCreated, portalsegment1) {
    var segs = portalsegment1.creator.counterpart.portals;
-   // TODO binary search
-   for(var i = 0; i < segs.length; i++) {
-     var seg = segs[i];
-     if(timeWhenEnteredPointOfPortalWasCreated < seg.et) {
-       if(timeWhenEnteredPointOfPortalWasCreated < seg.st) {
-         //Possibly not actually a bug because of tolerances
-         //near beginning (or, below, end) of portal-sequence,
-         //so it's unclear whether to complain about this
-         //in logs (TODO clean up)
-         bug("what kind of bug is this?");
-         //return null;
-         return seg;
-       }
-       return seg;
-     }
+   var i = binarysearch(segs, seg=>timeWhenEnteredPointOfPortalWasCreated < seg.et);
+   if(i != null) {
+     return segs[i];
    }
-   bug("there were no portals you emerge from?");
-   //return null;
    if(segs.length) {
-     return segs[segs.length-1];
+     var seg = segs[segs.length-1];
+     if(timeWhenEnteredPointOfPortalWasCreated < seg.et + 1.1) {
+       console.log("margin of error", timeWhenEnteredPointOfPortalWasCreated, seg.et);
+       return seg;
+     } else {
+       // ohhhh oops if you create your own portals on your own turn and go into them,
+       // before your partner has moved this turn, umm...
+       bug("there were no portals you emerge from?", timeWhenEnteredPointOfPortalWasCreated, seg.et);
+     }
+   } else {
+     bug("there were no portals?");
    }
-   bug("there were no portals?");
    return null;
 };
 
