@@ -4,10 +4,6 @@ var bug = function() {
   console.log.apply(console, arguments);
 };
 
-var canvas = document.getElementById('gamecanvas');
-canvas.width = canvas.scrollWidth;
-canvas.height = canvas.scrollHeight;
-var ctx = canvas.getContext('2d');
 
 // locations are x,y board which is [0..1) in both dimensions
 // time is in seconds (ish)
@@ -19,17 +15,6 @@ var ctx = canvas.getContext('2d');
 // creator (link to a portalcycle)
 // sx, sy, st, ex, ey, et
 
-var drawPortalSegment = function(portalsegment) {
-  ctx.strokeStyle = portalsegment.color;
-  ctx.lineCap = 'round';
-  // TODO adjust somewhat based on pixel density maybe?
-  ctx.lineWidth = 0.005;
-  ctx.beginPath();
-  ctx.moveTo(portalsegment.sx, portalsegment.sy);
-  ctx.lineTo(portalsegment.ex, portalsegment.ey);
-  ctx.stroke();
-};
-
 
 // data structure portalcycle:
 // color
@@ -37,33 +22,37 @@ var drawPortalSegment = function(portalsegment) {
 // vx and vy represent direction of travel (distance units per second??)
 // portals: array of portalsegments they've left behind
 
-var portalcycle1 = {
-  color: '#f80',
-  x: 0.25,
-  y: 0.25,
-  t: 0,
-  vx: 0.1,
-  vy: 0,
-  portals: []
-};
-var portalcycle2 = {
-  color: '#66f',
-  x: 0.75,
-  y: 0.75,
-  t: 0,
-  vx: -0.1,
-  vy: 0,
-  portals: []
-};
-// which other portal curve your portals correspond with
-portalcycle1.counterpart = portalcycle2;
-portalcycle2.counterpart = portalcycle1;
+var world;
 
-var world = {
-  portalsegments: [],
-  segsQuadTree: QuadTree(0, 0, 1, 1),
-  portalcycles: [portalcycle1, portalcycle2],
-  idCounter: 1
+var initializeWorld = function() {
+  var portalcycle1 = {
+    color: '#f80',
+    x: 0.25,
+    y: 0.25,
+    t: 0,
+    vx: 0.1,
+    vy: 0,
+    portals: []
+  };
+  var portalcycle2 = {
+    color: '#66f',
+    x: 0.75,
+    y: 0.75,
+    t: 0,
+    vx: -0.1,
+    vy: 0,
+    portals: []
+  };
+  // which other portal curve your portals correspond with
+  portalcycle1.counterpart = portalcycle2;
+  portalcycle2.counterpart = portalcycle1;
+
+  world = {
+    portalsegments: [],
+    segsQuadTree: QuadTree(0, 0, 1, 1),
+    portalcycles: [portalcycle1, portalcycle2],
+    idCounter: 1
+  };
 };
 
 var any = function() {
@@ -117,7 +106,7 @@ var randomwalk1 = function(firstSeg) {
   var segs = [firstSeg];
   lastSeg = firstSeg;
   for(var i = 0; i < 50; i++) {
-    var newSeg = {color: '#f80', creator: portalcycle1};
+    var newSeg = {color: '#f80', creator: world.portalcycles[0]};
     newSeg.sx = lastSeg.ex;
     newSeg.sy = lastSeg.ey;
     newSeg.st = lastSeg.et;
@@ -134,7 +123,7 @@ var randomwalk2 = function(firstSeg) {
   lastSeg = firstSeg;
   var vx = 0, vy = 0;
   for(var i = 0; i < 50; i++) {
-    var newSeg = {color: '#f80', creator: portalcycle1};
+    var newSeg = {color: '#f80', creator: world.portalcycles[0]};
     vx += ((Math.random()*2-1) * 0.05);
     vy += ((Math.random()*2-1) * 0.05);
     newSeg.sx = lastSeg.ex;
@@ -148,16 +137,16 @@ var randomwalk2 = function(firstSeg) {
   }
   return segs;
 };
-var exampleSeg1 = {
-  color: '#f80',
-  creator: portalcycle1,
-  sx: 0.25,
-  sy: 0.25,
-  st: 0,
-  ex: 0.75,
-  ey: 0.5,
-  et: 1
-};
+//var exampleSeg1 = {
+//  color: '#f80',
+//  creator: world.portalcycles[0],
+//  sx: 0.25,
+//  sy: 0.25,
+//  st: 0,
+//  ex: 0.75,
+//  ey: 0.5,
+//  et: 1
+//};
 //var worldportalsegments = randomwalk2(exampleSeg1);
 
 // counterclockwiseness in radians
@@ -497,20 +486,45 @@ var doTurn = function() {
   });
 };
 
-var t0 = Date.now();
-console.log("t0: ", t0);
-for(var i = 0; i < 1250; i++) {
-  doTurn();
-}
-var t1 = Date.now();
-var dt = t1 - t0;
-console.log("t1: ", t1, "dt: ", dt);
 
-ctx.save();
-ctx.scale(canvas.width, canvas.height);
+var testSim = function() {
+  var t0 = Date.now();
+  console.log("t0: ", t0);
+  initializeWorld()
+  for(var i = 0; i < 1250; i++) {
+    doTurn();
+  }
+  var t1 = Date.now();
+  var dt = t1 - t0;
+  console.log("t1: ", t1, "dt: ", dt);
+};
 
-world.portalsegments.forEach(function(seg) {
-  drawPortalSegment(seg);
-});
+var drawPortalSegment = function(ctx, portalsegment) {
+  ctx.strokeStyle = portalsegment.color;
+  ctx.lineCap = 'round';
+  // TODO adjust somewhat based on pixel density maybe?
+  ctx.lineWidth = 0.005;
+  ctx.beginPath();
+  ctx.moveTo(portalsegment.sx, portalsegment.sy);
+  ctx.lineTo(portalsegment.ex, portalsegment.ey);
+  ctx.stroke();
+};
+var drawWorld = function() {
+  var canvas = document.getElementById('gamecanvas');
+  canvas.width = canvas.scrollWidth;
+  canvas.height = canvas.scrollHeight;
+  var ctx = canvas.getContext('2d');
 
-ctx.restore();
+  ctx.save();
+  ctx.scale(canvas.width, canvas.height);
+
+  world.portalsegments.forEach(function(seg) {
+    drawPortalSegment(ctx, seg);
+  });
+
+  ctx.restore();
+};
+
+testSim();
+drawWorld();
+
