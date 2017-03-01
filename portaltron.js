@@ -482,7 +482,7 @@ var doTurn = function() {
 
 var t0 = Date.now();
 console.log("t0: ", t0);
-for(var i = 0; i < 250; i++) {
+for(var i = 0; i < 1250; i++) {
   doTurn();
 }
 var t1 = Date.now();
