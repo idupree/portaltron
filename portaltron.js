@@ -165,8 +165,8 @@ var drive = function(portalcycle, time) {
     if(time <= 0) {
       break;
     }
-    var into = findNextPortal(portalcycle);
-    if(into && into.elapsed < time*1.00000001) {
+    var into = findNextPortal(portalcycle, time*1.00000001);
+    if(into) {
       var portalsegment2 = findCorrespondingPortal(
         into.timeWhenEnteredPointOfPortalWasCreated, into.portalsegment1);
       driveOutOfPortal(into, portalcycle, into.portalsegment1, portalsegment2);
@@ -400,7 +400,11 @@ var findNextPortal = function(portalcycle, maxTimeElapse) {
      (best && best2 && best.portalsegment1 !== best2.portalsegment1)) {
     bug("why", best&& best.elapsed, best2&&best2.elapsed);
   }*/
-  return best;
+  if(best && best.elapsed <= maxTimeElapse) {
+    return best;
+  } else {
+    return null;
+  }
 };
 
 var binarysearch = function(arr, elemIsHighEnough) {
