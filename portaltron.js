@@ -538,22 +538,65 @@ var drawPortalSegment = function(ctx, portalsegment) {
   ctx.lineTo(portalsegment.ex, portalsegment.ey);
   ctx.stroke();
 };
-var drawWorld = profable('drawWorld', function() {
-  var canvas = document.getElementById('gamecanvas');
-  canvas.width = canvas.scrollWidth;
-  canvas.height = canvas.scrollHeight;
-  var ctx = canvas.getContext('2d');
+var initializeDraw = function() {
+  var portalscanvas = document.createElement('canvas');
+  portalscanvas.id = 'portalscanvas';
+  portalscanvas.width = portalscanvas.scrollWidth;
+  portalscanvas.height = portalscanvas.scrollHeight;
+  portalscanvas.dataset.segsdrawn = 0;
+  var game = document.getElementById('game');
+  game.appendChild(portalscanvas);
+};
+var redrawWorld = profable('redrawWorld', function() {
+  var portalscanvas = document.getElementById('portalscanvas');
+  portalscanvas.width = portalscanvas.scrollWidth;
+  portalscanvas.height = portalscanvas.scrollHeight;
+  var ctx = portalscanvas.getContext('2d');
 
   ctx.save();
-  ctx.scale(canvas.width, canvas.height);
+  ctx.scale(portalscanvas.width, portalscanvas.height);
 
   world.portalsegments.forEach(function(seg) {
     drawPortalSegment(ctx, seg);
   });
+  portalscanvas.dataset.segsdrawn = world.portalsegments.length;
 
+  ctx.restore();
+
+  //var data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  //ctx.putImageData(data, 0, 0);
+});
+var drawNewPortals = profable('drawNewPortals', function() {
+  var portalscanvas = document.getElementById('portalscanvas');
+  var ctx = portalscanvas.getContext('2d');
+  ctx.save();
+  ctx.scale(portalscanvas.width, portalscanvas.height);
+  for(var i = portalscanvas.dataset.segsdrawn; i < world.portalsegments.length; i++) {
+    drawPortalSegment(ctx, world.portalsegments[i]);
+  }
+  portalscanvas.dataset.segsdrawn = world.portalsegments.length;
   ctx.restore();
 });
 
-testSim();
-drawWorld();
+initializeWorld();
+initializeDraw();
+redrawWorld();
+var turn = 0;
+var go = function() {
+  prof(()=>doTurn(), "turn");
+  turn++;
+  //drawWorld();
+  drawNewPortals();
+  console.log("segs:", world.portalsegments.length, ", turn:", turn);
+  if(turn < 50000) {
+    setTimeout(go, 10);
+  }
+};
+go();
+
+
+//testSim();
+//drawWorld();
+
+//document.body.addEventListener('click', ()=>{testSim();drawWorld();});
 
