@@ -491,18 +491,43 @@ var doTurn = function() {
 };
 
 
-var testSim = function() {
+var fnName = function(f, name) {
+  if(name) {
+    return name;
+  } else if(f.name !== "") {
+    return f.name;
+  } else {
+    return f.toString().replace(/^function ?/, '').slice(0, 20);
+  }
+};
+// profile
+var prof = function(f, name) {
+  var name = fnName(f, name);
   var t0 = Date.now();
-  console.log("t0: ", t0);
+  console.log("t0 "+name+':', t0);
+  var result = f();
+  var t1 = Date.now();
+  var dt = t1 - t0;
+  console.log("t1 "+name+':', t1, "dt: ", dt);
+  return result;
+}
+var profable = function(optname, f) {
+  if(arguments.length === 1) {
+    f = optname;
+    optname = undefined;
+  }
+  return function() {
+    var that = this;
+    return prof(function(){return f.apply(that, arguments)}, optname);
+  };
+};
+
+var testSim = profable('testSim', function() {
   initializeWorld()
   for(var i = 0; i < 1250; i++) {
     doTurn();
   }
-  var t1 = Date.now();
-  var dt = t1 - t0;
-  console.log("t1: ", t1, "dt: ", dt);
-};
-
+});
 var drawPortalSegment = function(ctx, portalsegment) {
   ctx.strokeStyle = portalsegment.color;
   ctx.lineCap = 'round';
@@ -513,7 +538,7 @@ var drawPortalSegment = function(ctx, portalsegment) {
   ctx.lineTo(portalsegment.ex, portalsegment.ey);
   ctx.stroke();
 };
-var drawWorld = function() {
+var drawWorld = profable('drawWorld', function() {
   var canvas = document.getElementById('gamecanvas');
   canvas.width = canvas.scrollWidth;
   canvas.height = canvas.scrollHeight;
@@ -527,7 +552,7 @@ var drawWorld = function() {
   });
 
   ctx.restore();
-};
+});
 
 testSim();
 drawWorld();
