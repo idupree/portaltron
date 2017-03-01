@@ -602,3 +602,16 @@ go();
 
 //document.body.addEventListener('click', ()=>{testSim();drawWorld();});
 
+var debounce = function(f, wait) {
+  var timeout = null;
+  return function() {
+    // TODO return Promise of return value?
+    var that = this, args = arguments;
+    clearTimeout(timeout);
+    timeout = setTimeout(function() {
+      f.apply(that, args);
+    }, wait);
+  };
+}
+window.addEventListener('resize', debounce(redrawWorld, 500));
+
